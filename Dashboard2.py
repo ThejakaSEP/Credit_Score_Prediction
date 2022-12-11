@@ -9,12 +9,11 @@ from random import randint
 from plotly.subplots import make_subplots
 from sklearn.metrics import precision_recall_fscore_support as score
 from sklearn.metrics import confusion_matrix
+from dash import Dash, dcc, html, Input, Output, State
 
 import numpy as np
 
 df = pd.read_csv('forDashboard.csv')
-
-
 
 def removeUnwanted(df):
     df = df[(df['Occupation'] != '_______')]
@@ -195,6 +194,7 @@ def classificationReportGraph():
     global y_test
     y_test = pd.read_csv('y_test.csv')
 
+    global loaded_model
     loaded_model = pickle.load(open('RandomForestClassfier.sav', 'rb'))
 
     global predicted
@@ -257,10 +257,30 @@ def confusionMatrixGraph():
 
     return fig2
 ########################################################################################################################################################
+def predictor(filePath):
 
+    dfPredict = pd.read_csv(filePath)
 
+    prediction = loaded_model.predict(dfPredict)[0]
+
+    return prediction
+
+########################################################################################################################################################
 app = dash.Dash()
+external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
+app = Dash(external_stylesheets=external_stylesheets)
+
+@app.callback(
+    Output('container-button-basic', 'children'),
+    Input('submit-val', 'n_clicks'),
+    State('input-on-submit', 'value')
+)
+def update_output(n_clicks, value):
+    return 'The input value was "{}" and the button has been clicked {} times'.format(
+        value,
+        n_clicks
+    )
 
 app.layout = html.Div(children=[
 
@@ -273,13 +293,6 @@ app.layout = html.Div(children=[
 ,
 
     html.Div(children=[
-    # html.H3(children='Count Plot for Target',
-    #         style={
-    #             'textAlign': 'left',
-    #             'color': 'black'
-    #         }
-    #         ),
-
     dcc.Graph(
         id='credit-score',
         figure=targetCountplot())
@@ -299,18 +312,7 @@ html.H1(children='Multivariate Analysis',
             )
 ,
 html.Div(children=[
-    # html.H3(children='Missing Value %',
-    #         style={
-    #             'textAlign': 'left',
-    #             'color': 'black'
-    #         }
-    #         )
-    # html.Div(children='''Credit Score''',
-    #          style={
-    #              'textAlign': 'center',
-    #              'color': 'blue'
-    #          }
-    #          ),
+
     dcc.Graph(
         id='graph2',
         figure=missingValues())
@@ -356,6 +358,7 @@ html.Div(children=[
 
 html.Br(),
 html.Br(),
+html.Br(),
 
 html.H1(children='Model Performances',
 
@@ -364,7 +367,7 @@ html.H1(children='Model Performances',
                 'color': 'black'
             }
             ),
-html.Br(),
+
 html.Br(),
 
 html.H2(children='Random Forest Classifier',
@@ -393,7 +396,21 @@ html.Div(children=[
     )
 ]
         ,style={'height': '80vh','display': 'flex'}
-)
+),
+html.Br(),
+html.Br(),
+
+html.H1(children='Make Predictions',
+
+            style={
+                'textAlign': 'center',
+                'color': 'black'
+            }
+            ),
+    html.Div(dcc.Input(id='input-on-submit', type='text')),
+    html.Button('Submit', id='submit-val', n_clicks=0),
+    html.Div(id='container-button-basic',
+             children='Enter a value and press submit')
 
     ]
     # ,style={'height': '100vh'}
